@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Repo Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-12 text-center mb-4">
+                <h1>GitHub Repository Analyzer</h1>
+                <p class="lead">Enter a GitHub repository URL to analyze its data</p>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <form action="/analyze" method="post">
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" name="repo_url" placeholder="https://github.com/owner/repository" required>
+                                <button class="btn btn-primary" type="submit">Analyze</button>
+                            </div>
+                            <div class="form-text">Example: https://github.com/facebook/react</div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-8">
+                <div class="alert alert-danger">
+                    {{ error }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if repo_data %}
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <h2 class="mb-4">Repository Analysis: <a href="{{ repo_data.html_url }}" target="_blank">{{ repo_data.name }}</a></h2>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Repository Metadata -->
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Repository Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Full Name:</span>
+                                <span class="fw-bold">{{ repo_data.full_name }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Description:</span>
+                                <span class="fw-bold">{{ repo_data.description or 'N/A' }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Stars:</span>
+                                <span class="fw-bold">{{ repo_data.stargazers_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Forks:</span>
+                                <span class="fw-bold">{{ repo_data.forks_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Open Issues:</span>
+                                <span class="fw-bold">{{ repo_data.open_issues_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Watchers:</span>
+                                <span class="fw-bold">{{ repo_data.subscribers_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Language:</span>
+                                <span class="fw-bold">{{ repo_data.language or 'N/A' }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Created:</span>
+                                <span class="fw-bold">{{ repo_data.created_at }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Last Updated:</span>
+                                <span class="fw-bold">{{ repo_data.updated_at }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Default Branch:</span>
+                                <span class="fw-bold">{{ repo_data.default_branch }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contributors -->
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Top Contributors</h3>
+                    </div>
+                    <div class="card-body">
+                        {% if contributor_error %}
+                            <div class="alert alert-warning">
+                                {{ contributor_error }}
+                            </div>
+                        {% elif contributors %}
+                            <ul class="list-group list-group-flush">
+                                {% for contributor in contributors %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ contributor.avatar_url }}" alt="{{ contributor.login }}" class="contributor-avatar me-2">
+                                        <a href="{{ contributor.html_url }}" target="_blank">{{ contributor.login }}</a>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">{{ contributor.contributions }} commits</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No contributor data available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Commit Activity -->
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Commit Activity</h3>
+                    </div>
+                    <div class="card-body">
+                        {% if commit_error %}
+                            <div class="alert alert-warning">
+                                {{ commit_error }}
+                            </div>
+                        {% elif commit_data %}
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Total Commits</h5>
+                                            <p class="display-4">{{ commit_data.total_commits }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">Weekly Average</h5>
+                                            <p class="display-4">{{ commit_data.weekly_average }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if commit_data.recent_weeks %}
+                                <h5>Recent Weekly Activity</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Week</th>
+                                                <th>Total Commits</th>
+                                                <th>Sunday</th>
+                                                <th>Monday</th>
+                                                <th>Tuesday</th>
+                                                <th>Wednesday</th>
+                                                <th>Thursday</th>
+                                                <th>Friday</th>
+                                                <th>Saturday</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for week in commit_data.recent_weeks %}
+                                            <tr>
+                                                <td>Week {{ loop.index }}</td>
+                                                <td>{{ week.total }}</td>
+                                                <td>{{ week.days[0] }}</td>
+                                                <td>{{ week.days[1] }}</td>
+                                                <td>{{ week.days[2] }}</td>
+                                                <td>{{ week.days[3] }}</td>
+                                                <td>{{ week.days[4] }}</td>
+                                                <td>{{ week.days[5] }}</td>
+                                                <td>{{ week.days[6] }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p>No recent commit activity available.</p>
+                            {% endif %}
+                        {% else %}
+                            <p>No commit data available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Rate Limit Information -->
+        <div class="row mb-5">
+            <div class="col-md-12">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <p class="mb-0">
+                            <small>API Rate Limit: {{ rate_limit.remaining }} / {{ rate_limit.limit }} requests remaining. 
+                            Resets at {{ rate_limit.reset_time }}</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer class="text-center py-4 text-muted">
+        <p>GitHub Repo Analyzer &copy; 2023</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
